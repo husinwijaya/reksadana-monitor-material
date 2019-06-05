@@ -1,93 +1,125 @@
-import { Component } from '@angular/core';
-import { FormBuilder, Validators } from '@angular/forms';
+import {AfterViewInit, ChangeDetectorRef, Component, OnInit} from '@angular/core';
+import {FormBuilder, Validators} from '@angular/forms';
+import {debounceTime, filter, switchMap, tap} from 'rxjs/operators';
+import {Observable} from 'rxjs';
+import {PasarDanaService} from '../data-source/pasar-dana.service';
+import {SelectionModel} from '@angular/cdk/collections';
+import * as moment from 'moment';
+import {LocalStorageService} from '../data-source/local-storage.service';
+import {Transaction} from '../data-source/transaction';
+import {ActivatedRoute, Router} from '@angular/router';
 
 @Component({
   selector: 'app-entry',
   templateUrl: './entry.component.html',
-  styleUrls: ['./entry.component.css']
+  styleUrls: ['./entry.component.css'],
 })
-export class EntryComponent {
-  addressForm = this.fb.group({
-    company: null,
-    firstName: [null, Validators.required],
-    lastName: [null, Validators.required],
-    address: [null, Validators.required],
-    address2: null,
-    city: [null, Validators.required],
-    state: [null, Validators.required],
-    postalCode: [null, Validators.compose([
-      Validators.required, Validators.minLength(5), Validators.maxLength(5)])
-    ],
-    shipping: ['free', Validators.required]
+export class EntryComponent implements OnInit, AfterViewInit {
+  trxForm = this.fb.group({
+    id: null,
+    rdn: [null, Validators.required],
+    action: [null, Validators.required],
+    actionDate: [null, Validators.required],
+    amount: [null, Validators.required]
   });
+  suggestedRdnList$: Observable<Suggestion[]>;
+  displayedColumns = ['select', 'date', 'nab'];
+  selectedNab: SelectionModel<NabDate>;
+  nabDates$: Observable<NabDate[]>;
+  totalUnit: number;
+  actionDateFilter = (d: moment.Moment): boolean => d.isBefore(new Date());
 
-  hasUnitNumber = false;
+  constructor(private fb: FormBuilder, private datasource: PasarDanaService, private cd: ChangeDetectorRef,
+              private storage: LocalStorageService, private route: ActivatedRoute, private router: Router) {
+  }
 
-  states = [
-    {name: 'Alabama', abbreviation: 'AL'},
-    {name: 'Alaska', abbreviation: 'AK'},
-    {name: 'American Samoa', abbreviation: 'AS'},
-    {name: 'Arizona', abbreviation: 'AZ'},
-    {name: 'Arkansas', abbreviation: 'AR'},
-    {name: 'California', abbreviation: 'CA'},
-    {name: 'Colorado', abbreviation: 'CO'},
-    {name: 'Connecticut', abbreviation: 'CT'},
-    {name: 'Delaware', abbreviation: 'DE'},
-    {name: 'District Of Columbia', abbreviation: 'DC'},
-    {name: 'Federated States Of Micronesia', abbreviation: 'FM'},
-    {name: 'Florida', abbreviation: 'FL'},
-    {name: 'Georgia', abbreviation: 'GA'},
-    {name: 'Guam', abbreviation: 'GU'},
-    {name: 'Hawaii', abbreviation: 'HI'},
-    {name: 'Idaho', abbreviation: 'ID'},
-    {name: 'Illinois', abbreviation: 'IL'},
-    {name: 'Indiana', abbreviation: 'IN'},
-    {name: 'Iowa', abbreviation: 'IA'},
-    {name: 'Kansas', abbreviation: 'KS'},
-    {name: 'Kentucky', abbreviation: 'KY'},
-    {name: 'Louisiana', abbreviation: 'LA'},
-    {name: 'Maine', abbreviation: 'ME'},
-    {name: 'Marshall Islands', abbreviation: 'MH'},
-    {name: 'Maryland', abbreviation: 'MD'},
-    {name: 'Massachusetts', abbreviation: 'MA'},
-    {name: 'Michigan', abbreviation: 'MI'},
-    {name: 'Minnesota', abbreviation: 'MN'},
-    {name: 'Mississippi', abbreviation: 'MS'},
-    {name: 'Missouri', abbreviation: 'MO'},
-    {name: 'Montana', abbreviation: 'MT'},
-    {name: 'Nebraska', abbreviation: 'NE'},
-    {name: 'Nevada', abbreviation: 'NV'},
-    {name: 'New Hampshire', abbreviation: 'NH'},
-    {name: 'New Jersey', abbreviation: 'NJ'},
-    {name: 'New Mexico', abbreviation: 'NM'},
-    {name: 'New York', abbreviation: 'NY'},
-    {name: 'North Carolina', abbreviation: 'NC'},
-    {name: 'North Dakota', abbreviation: 'ND'},
-    {name: 'Northern Mariana Islands', abbreviation: 'MP'},
-    {name: 'Ohio', abbreviation: 'OH'},
-    {name: 'Oklahoma', abbreviation: 'OK'},
-    {name: 'Oregon', abbreviation: 'OR'},
-    {name: 'Palau', abbreviation: 'PW'},
-    {name: 'Pennsylvania', abbreviation: 'PA'},
-    {name: 'Puerto Rico', abbreviation: 'PR'},
-    {name: 'Rhode Island', abbreviation: 'RI'},
-    {name: 'South Carolina', abbreviation: 'SC'},
-    {name: 'South Dakota', abbreviation: 'SD'},
-    {name: 'Tennessee', abbreviation: 'TN'},
-    {name: 'Texas', abbreviation: 'TX'},
-    {name: 'Utah', abbreviation: 'UT'},
-    {name: 'Vermont', abbreviation: 'VT'},
-    {name: 'Virgin Islands', abbreviation: 'VI'},
-    {name: 'Virginia', abbreviation: 'VA'},
-    {name: 'Washington', abbreviation: 'WA'},
-    {name: 'West Virginia', abbreviation: 'WV'},
-    {name: 'Wisconsin', abbreviation: 'WI'},
-    {name: 'Wyoming', abbreviation: 'WY'}
-  ];
+  refreshTotalUnit() {
+    if (!this.selectedNab.isEmpty()) {
+      this.totalUnit = this.trxForm.value.amount / this.selectedNab.selected[0].nab;
+    } else {
+      this.totalUnit = 0;
+    }
+  }
 
-  constructor(private fb: FormBuilder) {}
+  renderSuggestion(suggestion: Suggestion): string {
+    if (suggestion) {
+      return suggestion.name;
+    }
+  }
+
+  ngOnInit(): void {
+    console.log(this);
+    this.suggestedRdnList$ = this.trxForm.get('rdn').valueChanges.pipe(
+      debounceTime(500),
+      filter(value => value && typeof value === 'string'),
+      switchMap((value) => this.datasource.getRdnSuggestion(value)),
+    );
+    this.nabDates$ = this.trxForm.valueChanges.pipe(
+      filter(formVal => formVal && typeof formVal === 'object'
+        && formVal.rdn && typeof formVal.rdn === 'object'
+        && formVal.rdn.rid && typeof formVal.rdn.rid === 'number'
+        && formVal.actionDate && moment.isMoment(formVal.actionDate)),
+      switchMap(formVal => this.datasource.getNabPrediction(formVal.rdn.rid, formVal.actionDate)),
+    ).pipe(tap(value => this.selectNabDate(value)));
+    this.selectedNab = new SelectionModel<NabDate>(false, []);
+  }
+
+  private selectNabDate(nabDates): void {
+    const actionDate = this.trxForm.get('actionDate').value as moment.Moment;
+    const selectedNabDate = nabDates.find(nabDate => actionDate.isSame(nabDate.date, 'd'));
+    if (selectedNabDate) {
+      this.selectedNab.select(selectedNabDate);
+    } else {
+      this.selectedNab.clear();
+      this.totalUnit = 0;
+    }
+  }
+
+  updateNab(row: NabDate, refreshTable: boolean = false): void {
+    this.selectedNab.select(row);
+    this.trxForm.patchValue({actionDate: moment(row.date), nab: row.nab}, {emitEvent: refreshTable});
+    this.refreshTotalUnit();
+  }
+
+  isSelected(row: NabDate): boolean {
+    if (this.selectedNab.selected.length === 0 || !row) {
+      return false;
+    }
+    const selected = this.selectedNab.selected[0];
+    return moment(selected.date).isSame(moment(row.date), 'd') && selected.nab === row.nab;
+  }
 
   onSubmit() {
-    alert('Thanks!');
+    const form = this.trxForm.value;
+    const nabDate = this.selectedNab.selected[0];
+    this.storage.save({
+      id: form.id,
+      rid: form.rdn.rid,
+      name: form.rdn.name,
+      action: form.action,
+      date: nabDate.date,
+      nab: nabDate.nab,
+      amount: form.amount
+    } as Transaction);
+    this.router.navigate(['/summary']);
+  }
+
+  ngAfterViewInit(): void {
+    this.route.params.subscribe(params => {
+      if (params.id) {
+        this.storage.getTransactionById(params.id).then(trx => {
+          this.trxForm.patchValue({
+            id: trx.id,
+            rdn: trx as Suggestion,
+            action: trx.action.toString(),
+            actionDate: moment(trx.date),
+            amount: trx.amount,
+          });
+          this.updateNab({date: trx.date, nab: trx.nab}, true);
+          this.cd.detectChanges();
+        });
+      }
+    });
+
   }
 }

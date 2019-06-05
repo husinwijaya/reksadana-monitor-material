@@ -1,0 +1,18 @@
+{
+  "/kontan": {
+    "target": "http://pusatdata.kontan.co.id",
+    "secure": false,
+    "pathRewrite": {
+      "^/kontan": ""
+    },
+    "changeOrigin": true
+  },
+  "/pasardana": {
+    "target": "https://pasardana.id",
+    "secure": true,
+    "pathRewrite": {
+      "^/pasardana": ""
+    },
+    "changeOrigin": true
+  }
+}
