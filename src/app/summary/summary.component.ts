@@ -1,5 +1,7 @@
 import {ChangeDetectorRef, Component, Inject, NgZone, OnInit, ViewChild} from '@angular/core';
-import {MatPaginator, MatSort, MatTable, MatTableDataSource} from '@angular/material';
+import {MatPaginator} from '@angular/material/paginator';
+import {MatSort} from '@angular/material/sort';
+import {MatTable, MatTableDataSource} from '@angular/material/table';
 import {Action, Transaction} from '../data-source/transaction';
 import {LocalStorageService} from '../data-source/local-storage.service';
 import {from, Observable} from 'rxjs';
@@ -12,9 +14,9 @@ import {MAT_DIALOG_DATA, MatDialog} from '@angular/material/dialog';
   styleUrls: ['./summary.component.css'],
 })
 export class SummaryComponent implements OnInit {
-  @ViewChild(MatPaginator) paginator: MatPaginator;
-  @ViewChild(MatSort) sort: MatSort;
-  @ViewChild(MatTable) table: MatTable<any>;
+  @ViewChild(MatPaginator, {static: false}) paginator: MatPaginator;
+  @ViewChild(MatSort, {static: false}) sort: MatSort;
+  @ViewChild(MatTable, {static: false}) table: MatTable<any>;
   dataSource$: Observable<MatTableDataSource<Transaction>>;
   data: Transaction[] = [];
   Action: typeof Action = Action;
