@@ -1,12 +1,7 @@
-import {ChangeDetectorRef, Component, Inject, NgZone, OnInit, ViewChild} from '@angular/core';
-import {MatPaginator} from '@angular/material/paginator';
-import {MatSort} from '@angular/material/sort';
-import {MatTable, MatTableDataSource} from '@angular/material/table';
-import {Action, Transaction} from '../data-source/transaction';
+import {Component, OnInit} from '@angular/core';
 import {LocalStorageService} from '../data-source/local-storage.service';
-import {from, Observable} from 'rxjs';
-import {map} from 'rxjs/operators';
-import {MAT_DIALOG_DATA, MatDialog} from '@angular/material/dialog';
+import {Observable} from 'rxjs';
+import {Transaction} from '../data-source/transaction';
 
 @Component({
   selector: 'app-summary',
@@ -14,53 +9,14 @@ import {MAT_DIALOG_DATA, MatDialog} from '@angular/material/dialog';
   styleUrls: ['./summary.component.css'],
 })
 export class SummaryComponent implements OnInit {
-  @ViewChild(MatPaginator, {static: false}) paginator: MatPaginator;
-  @ViewChild(MatSort, {static: false}) sort: MatSort;
-  @ViewChild(MatTable, {static: false}) table: MatTable<any>;
-  dataSource$: Observable<MatTableDataSource<Transaction>>;
-  data: Transaction[] = [];
-  Action: typeof Action = Action;
-  displayedColumns = ['idAsNumber', 'name', 'action', 'date', 'nab', 'amount', 'totalUnit', 'modify'];
 
-  constructor(private storage: LocalStorageService, private dialog: MatDialog, private zone: NgZone, private ref: ChangeDetectorRef) {
+  data$: Observable<Transaction[]>;
+
+  constructor(private storage: LocalStorageService) {
   }
 
   ngOnInit() {
-    this.dataSource$ = from(this.storage.getTransactions(val => this.data.push(val))).pipe(map(() => {
-      const ds = new MatTableDataSource<Transaction>(this.data.sort((a, b) => b.idAsNumber - a.idAsNumber));
-      ds.paginator = this.paginator;
-      ds.sort = this.sort;
-      return ds;
-    }));
+    this.data$ = this.storage.getAllTransaction();
   }
 
-  showDeleteConfirm(trx: Transaction) {
-    this.dialog.open(DeleteTransactionDialogComponent, {data: trx}).afterClosed().subscribe(result => {
-      if (result) {
-        this.storage.deleteTransaction(trx.id).then(() => {
-          this.data = this.data.filter(item => item.id !== trx.id);
-          (this.table.dataSource as any).data = this.data;
-          this.table.renderRows();
-        });
-      }
-    });
-  }
-}
-
-@Component({
-  selector: 'app-delete-trx-dialog',
-  template: `<h2 mat-dialog-title>Delete Transaction</h2>
-  <mat-dialog-content>
-    Are you sure delete transaction {{Action[data.action]}} {{data.name}} at {{data.date|date:'dd-MM-yyyy'}}?
-  </mat-dialog-content>
-  <mat-dialog-actions>
-    <button mat-button mat-dialog-close cdkFocusInitial>No</button>
-    <button mat-button [mat-dialog-close]="true">Yes</button>
-  </mat-dialog-actions>`
-})
-export class DeleteTransactionDialogComponent {
-  Action: typeof Action = Action;
-
-  constructor(@Inject(MAT_DIALOG_DATA) public data: Transaction) {
-  }
 }

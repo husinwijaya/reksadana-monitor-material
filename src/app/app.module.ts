@@ -5,23 +5,24 @@ import {AppComponent} from './app.component';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {DashboardComponent} from './dashboard/dashboard.component';
 import {LayoutModule} from '@angular/cdk/layout';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MAT_DATE_FORMATS } from '@angular/material/core';
-import { MatDialogModule } from '@angular/material/dialog';
-import { MatGridListModule } from '@angular/material/grid-list';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatListModule } from '@angular/material/list';
-import { MatMenuModule } from '@angular/material/menu';
-import { MatPaginatorModule } from '@angular/material/paginator';
-import { MatRadioModule } from '@angular/material/radio';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatSortModule } from '@angular/material/sort';
-import { MatTableModule } from '@angular/material/table';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import {DeleteTransactionDialogComponent, SummaryComponent} from './summary/summary.component';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCardModule} from '@angular/material/card';
+import {MAT_DATE_FORMATS} from '@angular/material/core';
+import {MatDialogModule} from '@angular/material/dialog';
+import {MatGridListModule} from '@angular/material/grid-list';
+import {MatIconModule} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
+import {MatListModule} from '@angular/material/list';
+import {MatMenuModule} from '@angular/material/menu';
+import {MatPaginatorModule} from '@angular/material/paginator';
+import {MatRadioModule} from '@angular/material/radio';
+import {MatSelectModule} from '@angular/material/select';
+import {MatSidenavModule} from '@angular/material/sidenav';
+import {MatSortModule} from '@angular/material/sort';
+import {MatTableModule} from '@angular/material/table';
+import {MatToolbarModule} from '@angular/material/toolbar';
+import {MatTabsModule} from '@angular/material/tabs';
+import {SummaryComponent} from './summary/summary.component';
 import {DetailComponent} from './detail/detail.component';
 import {EntryComponent} from './entry/entry.component';
 import {ReactiveFormsModule} from '@angular/forms';
@@ -32,6 +33,10 @@ import {MatMomentDateModule} from '@angular/material-moment-adapter';
 import {HttpClientModule} from '@angular/common/http';
 import {registerLocaleData} from '@angular/common';
 import localeId from '@angular/common/locales/id';
+import {DeleteTransactionDialogComponent, HistoryComponent} from './summary/history/history.component';
+import {PortfolioComponent} from './summary/portfolio/portfolio.component';
+import { MinusSignToParensPipe } from './minus-sign-to-parens.pipe';
+import {ChartModule} from 'primeng/chart';
 
 registerLocaleData(localeId);
 const appRoutes: Routes = [
@@ -39,7 +44,7 @@ const appRoutes: Routes = [
   {path: 'entry', component: EntryComponent},
   {path: 'entry/:id', component: EntryComponent},
   {path: 'detail', component: DetailComponent},
-  {path: '', redirectTo: '/entry', pathMatch: 'full'},
+  {path: '', redirectTo: '/summary', pathMatch: 'full'},
 ];
 export const DATE_PICKER_FORMAT = {
   display: {
@@ -55,7 +60,10 @@ export const DATE_PICKER_FORMAT = {
     SummaryComponent,
     DeleteTransactionDialogComponent,
     DetailComponent,
-    EntryComponent
+    EntryComponent,
+    HistoryComponent,
+    PortfolioComponent,
+    MinusSignToParensPipe
   ],
   imports: [
     BrowserModule,
@@ -83,6 +91,8 @@ export const DATE_PICKER_FORMAT = {
     MatMomentDateModule,
     RouterModule.forRoot(appRoutes),
     MatDialogModule,
+    MatTabsModule,
+    ChartModule,
   ],
   providers: [{provide: MAT_DATE_FORMATS, useValue: DATE_PICKER_FORMAT}],
   entryComponents: [DeleteTransactionDialogComponent],

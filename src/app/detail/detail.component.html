@@ -1,41 +1,11 @@
-<div class="grid-container">
-  <h1 class="mat-h1">Dashboard</h1>
-  <mat-grid-list cols="2" >
-    <mat-grid-tile >
-      <mat-card class="dashboard-card">
-        <mat-card-header>
-          <mat-card-title>
-            Profit %
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content class="dashboard-card-content">
-          <div>Card Content Here</div>
-        </mat-card-content>
-      </mat-card>
-    </mat-grid-tile>
-    <mat-grid-tile >
-      <mat-card class="dashboard-card">
-        <mat-card-header>
-          <mat-card-title>
-            Profit Riil
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content class="dashboard-card-content">
-          <div>Card Content Here</div>
-        </mat-card-content>
-      </mat-card>
-    </mat-grid-tile>
-    <mat-grid-tile [colspan]="2" >
-      <mat-card class="dashboard-card">
-        <mat-card-header>
-          <mat-card-title>
-            Profit
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content class="dashboard-card-content">
-          <div>Card Content Here</div>
-        </mat-card-content>
-      </mat-card>
-    </mat-grid-tile>
-  </mat-grid-list>
-</div>
+<label id="rangeLabel">Range</label>
+<mat-radio-group aria-labelledby="rangeLabel">
+  <mat-radio-button *ngFor="let range of [1,2,3,6]" (click)="updateLookback(range)" value="{{range}}">{{range}}M
+  </mat-radio-button>
+</mat-radio-group>
+<h1>Profit %</h1>
+<p-chart [data]="profitPercentageData" type="line"></p-chart>
+<h1>Profit Riil</h1>
+<p-chart [data]="profitData" type="line"></p-chart>
+<h1>NAB</h1>
+<p-chart [data]="nabData" type="line"></p-chart>

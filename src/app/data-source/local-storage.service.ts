@@ -1,6 +1,8 @@
 import {Injectable} from '@angular/core';
 import {NgForage} from 'ngforage';
 import {Transaction} from './transaction';
+import {from, Observable} from 'rxjs';
+import {map} from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -28,6 +30,13 @@ export class LocalStorageService {
       trx.id = LocalStorageService.generateId();
     }
     this.transactionStorage.setItem(trx.id, trx).then(() => console.log('saved', trx));
+  }
+
+  getAllTransaction(): Observable<Transaction[]> {
+    const transactions = [];
+    return from(this.transactionStorage.iterate((value: Transaction) => {
+      transactions.push(Object.assign(new Transaction(), value));
+    })).pipe(map(() => transactions));
   }
 
   getTransactions(callback: (val: Transaction) => void): Promise<void> {

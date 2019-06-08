@@ -42,4 +42,14 @@ export class PasarDanaService {
           }));
       }));
   }
+
+  getLastNab(reksadanaId: number): Promise<NabDate> {
+    return this.http.get<any>(`/pasardana/api/FundService/GetSnapshot` +
+      `?snapshotTimestamp=undefined&username=anonymous&fundId=${reksadanaId}`)
+      .pipe(map(result => {
+        const navs = result.NetAssetValues;
+        const lastNav = navs[navs.length - 1];
+        return ({date: moment(lastNav.Date, 'YYYY-MM-DDTHH:mm:ss').toDate(), nab: lastNav.Value});
+      })).toPromise();
+  }
 }
