@@ -1,7 +1,9 @@
 <label id="rangeLabel">Range</label>
 <mat-radio-group aria-labelledby="rangeLabel">
-  <mat-radio-button *ngFor="let range of [1,2,3,6]" (click)="updateLookback(range)" value="{{range}}">{{range}}M
+  <mat-radio-button *ngFor="let range of [1,2,3,6]" (click)="updateLookback(range)" value="{{range}}">
+    {{range}}M
   </mat-radio-button>
+  <mat-radio-button (click)="updateLookback(10000)" checked>All</mat-radio-button>
 </mat-radio-group>
 <h1>Profit %</h1>
 <p-chart [data]="profitPercentageData" type="line"></p-chart>

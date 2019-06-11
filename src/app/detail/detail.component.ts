@@ -1,7 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 import * as moment from 'moment';
 import * as randomColor from 'randomcolor';
-import {Transaction} from '../data-source/transaction';
+import {Action, Transaction} from '../data-source/transaction';
 import {LocalStorageService} from '../data-source/local-storage.service';
 import {PasarDanaService} from '../data-source/pasar-dana.service';
 
@@ -55,17 +55,22 @@ export class DetailComponent implements OnInit {
             calculationPerRdn[portofolioName][date].nab = +models[portofolioName][date];
           }
           if (date >= portofolio.actionDateMMDD) {
+            if (date === portofolio.actionDateMMDD && Action.Sell === +portofolio.action) {
+              calculationPerRdn[portofolioName][date].sold = true;
+              calculationPerRdn[portofolioName][date].lastAccSpending = calculationPerRdn[portofolioName][date].accSpending;
+            }
             calculationPerRdn[portofolioName][date].accSpending += portofolio.amount * portofolio.action;
             calculationPerRdn[portofolioName][date].accTotalUnit += portofolio.totalUnit * portofolio.action;
           }
         });
       });
       Object.keys(calculationPerRdn[portofolioName]).map(idx => calculationPerRdn[portofolioName][idx]).forEach(acc => {
-        if (isNaN(acc.nab)) {
-          [acc.profit, acc.profitPercentage] = [0, 0];
-        } else {
+        if (acc.accTotalUnit >= 1) {
           acc.profit = acc.accTotalUnit * acc.nab - acc.accSpending;
           acc.profitPercentage = acc.profit / acc.accSpending * 100;
+        } else if (acc.sold) {
+          acc.profit = acc.accSpending * -1;
+          acc.profitPercentage = acc.profit / acc.lastAccSpending * 100;
         }
       });
     });
@@ -76,7 +81,7 @@ export class DetailComponent implements OnInit {
     const datasets1 = Object.keys(models).map(label => {
       return {
         label,
-        data: labels.map(date => models[label][date]),
+        data: labels.map(date => models[label][date]).map(this.roundDec),
         fill: false,
         borderColor: generatedColor[label]
       };
@@ -84,7 +89,7 @@ export class DetailComponent implements OnInit {
     const datasets2 = Object.keys(calculationPerRdn).map(label => {
       return {
         label,
-        data: labels.map(date => calculationPerRdn[label][date].profit),
+        data: labels.map(date => calculationPerRdn[label][date].profit).map(this.roundDec),
         fill: false,
         borderColor: generatedColor[label]
       };
@@ -100,6 +105,13 @@ export class DetailComponent implements OnInit {
     this.nabData = {labels, datasets: datasets1};
     this.profitData = {labels, datasets: datasets2};
     this.profitPercentageData = {labels, datasets: datasets3};
+  }
+
+  private roundDec(val: number) {
+    if (val) {
+      return val.toFixed(2);
+    }
+    return val;
   }
 
   updateLookback(number: number) {
