@@ -1,0 +1,14 @@
+.chart {
+  width: 100%;
+  display: block;
+}
+
+.center {
+  width: 100%;
+  text-align: center;
+}
+
+.filter-label {
+  margin-left: 10px;
+  margin-right: 10px;
+}

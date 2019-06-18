@@ -36,7 +36,8 @@ import localeId from '@angular/common/locales/id';
 import {DeleteTransactionDialogComponent, HistoryComponent} from './summary/history/history.component';
 import {PortfolioComponent} from './summary/portfolio/portfolio.component';
 import { MinusSignToParensPipe } from './minus-sign-to-parens.pipe';
-import {ChartModule} from 'primeng/chart';
+import { HighchartsChartModule } from 'highcharts-angular';
+import {MatButtonToggleModule, MatSlideToggleModule} from '@angular/material';
 
 registerLocaleData(localeId);
 const appRoutes: Routes = [
@@ -92,7 +93,9 @@ export const DATE_PICKER_FORMAT = {
     RouterModule.forRoot(appRoutes),
     MatDialogModule,
     MatTabsModule,
-    ChartModule,
+    HighchartsChartModule,
+    MatButtonToggleModule,
+    MatSlideToggleModule,
   ],
   providers: [{provide: MAT_DATE_FORMATS, useValue: DATE_PICKER_FORMAT}],
   entryComponents: [DeleteTransactionDialogComponent],

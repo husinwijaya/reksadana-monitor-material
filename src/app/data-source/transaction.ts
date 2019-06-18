@@ -22,6 +22,7 @@ export class Transaction implements Suggestion, NabDate {
   date: Date;
   nab: number;
   amount: number;
+  type: string;
 
 }
 

@@ -16,9 +16,11 @@ export class PasarDanaService {
     return this.http.get<Array<Suggestion>>(`/pasardana/api/FundSearchResult/GetAll` +
       `?pageBegin=1&pageLength=100&sortField=Name&sortOrder=ASC&Keywords=${name}`)
       .pipe(map(rawData => {
+        console.log(rawData);
         return rawData.map((result: any) => ({
           rid: result.Id,
           name: result.Name,
+          type: result.ConservativeCategory,
         }));
       }));
   }

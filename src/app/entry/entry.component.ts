@@ -96,6 +96,7 @@ export class EntryComponent implements OnInit, AfterViewInit {
       id: form.id,
       rid: form.rdn.rid,
       name: form.rdn.name,
+      type: form.rdn.type,
       action: form.action,
       date: nabDate.date,
       nab: nabDate.nab,

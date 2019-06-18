@@ -1,9 +1,12 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, NgZone, OnInit} from '@angular/core';
 import * as moment from 'moment';
-import * as randomColor from 'randomcolor';
 import {Action, Transaction} from '../data-source/transaction';
 import {LocalStorageService} from '../data-source/local-storage.service';
 import {PasarDanaService} from '../data-source/pasar-dana.service';
+import * as Highcharts from 'highcharts/highstock';
+import {Series} from 'highcharts';
+import {HighchartsChartComponent} from 'highcharts-angular';
+
 
 @Component({
   selector: 'app-detail',
@@ -11,26 +14,70 @@ import {PasarDanaService} from '../data-source/pasar-dana.service';
   styleUrls: ['./detail.component.css']
 })
 export class DetailComponent implements OnInit {
+
+  constructor(private storage: LocalStorageService, private service: PasarDanaService, private zone: NgZone) {
+  }
+
+  Highcharts: typeof Highcharts = Highcharts;
   nabData: any;
   profitData: any;
   profitPercentageData: any;
-  maxLookback = new Date(2019, 0);
+  types = new Set<string>();
 
-  constructor(private storage: LocalStorageService, private service: PasarDanaService) {
+  private static adjustForHighchart(val: [string, number]) {
+    return [moment(val[0], 'MMDD').toDate().getTime(), parseFloat(val[1].toFixed(2))];
+  }
+
+  private static showData(data: any) {
+    return {
+      title: {
+        text: data[0]
+      },
+      subtitle: {
+        text: 'Source: pasardana.id'
+      },
+      rangeSelector: {
+        enabled: true
+      },
+      chart: {
+        type: 'line',
+        zoomType: 'x'
+      },
+      legend: {
+        layout: 'vertical',
+        align: 'right',
+        verticalAlign: 'middle'
+      },
+      xAxis: {
+        type: 'datetime',
+        title: {
+          text: 'Date'
+        }
+      },
+      yAxis: {
+        startOnTick: false,
+        endOnTick: false,
+        title: {
+          text: data[1]
+        }
+      },
+      series: data[2]
+    };
   }
 
   async ngOnInit() {
-    const mainTransaction: { [key: number]: Transaction[] } = {};
+    const mainTransaction: { [key: string]: Transaction[] } = {};
     await this.storage.getTransactions((transaction: Transaction): void => {
-      if (!mainTransaction[transaction.rid]) {
-        mainTransaction[transaction.rid] = [];
+      if (!mainTransaction[transaction.name]) {
+        mainTransaction[transaction.name] = [];
       }
-      mainTransaction[transaction.rid].push(transaction);
-      mainTransaction[transaction.rid].sort((a: Transaction, b: Transaction) => a.date.getTime() - b.date.getTime());
+      mainTransaction[transaction.name].push(transaction);
+      mainTransaction[transaction.name].sort((a: Transaction, b: Transaction) => a.date.getTime() - b.date.getTime());
+      this.types.add(transaction.type);
     });
     const models = {};
     await Promise.all(Object.values(mainTransaction).map(trx => trx[0]).map((transaction: Transaction) => {
-      const maxLookbackDate = moment.max(moment(this.maxLookback), moment(transaction.date)).toDate();
+      const maxLookbackDate = moment.max(moment(new Date(2018, 0)), moment(transaction.date)).toDate();
       return this.service.getNabHistory(transaction.rid, maxLookbackDate, new Date()).toPromise().then(nabHistories => {
         models[transaction.name] = nabHistories.map(nabHistory => Object.assign(new Transaction(), nabHistory))
           .reduce((prev, curr) => {
@@ -39,7 +86,7 @@ export class DetailComponent implements OnInit {
           }, {});
       });
     }));
-    const labels: string[] = Array.from(new Set([].concat.apply([], Object.values(models).map(x => Object.keys(x))).sort()));
+    const navDates: string[] = Array.from(new Set([].concat.apply([], Object.values(models).map(x => Object.keys(x))).sort()));
     const calculationPerRdn: { [key: string]: { [key: number]: any } } = {};
     Object.values(mainTransaction).forEach((value) => {
       const portofolioName = value[0].name;
@@ -47,7 +94,7 @@ export class DetailComponent implements OnInit {
         calculationPerRdn[portofolioName] = {};
       }
       value.forEach((portofolio: Transaction) => {
-        labels.forEach((date) => {
+        navDates.forEach((date) => {
           if (!calculationPerRdn[portofolioName][date]) {
             calculationPerRdn[portofolioName][date] = {};
             calculationPerRdn[portofolioName][date].accSpending = 0;
@@ -64,7 +111,7 @@ export class DetailComponent implements OnInit {
           }
         });
       });
-      Object.keys(calculationPerRdn[portofolioName]).map(idx => calculationPerRdn[portofolioName][idx]).forEach(acc => {
+      Object.keys(calculationPerRdn[portofolioName]).map(date => calculationPerRdn[portofolioName][date]).forEach(acc => {
         if (acc.accTotalUnit >= 1) {
           acc.profit = acc.accTotalUnit * acc.nab - acc.accSpending;
           acc.profitPercentage = acc.profit / acc.accSpending * 100;
@@ -74,48 +121,50 @@ export class DetailComponent implements OnInit {
         }
       });
     });
-    const generatedColor = Object.keys(models).reduce((prev, curr) => {
-      prev[curr] = randomColor();
-      return prev;
-    }, {});
-    const datasets1 = Object.keys(models).map(label => {
-      return {
-        label,
-        data: labels.map(date => models[label][date]).map(this.roundDec),
-        fill: false,
-        borderColor: generatedColor[label]
-      };
-    });
-    const datasets2 = Object.keys(calculationPerRdn).map(label => {
-      return {
-        label,
-        data: labels.map(date => calculationPerRdn[label][date].profit).map(this.roundDec),
-        fill: false,
-        borderColor: generatedColor[label]
-      };
-    });
-    const datasets3 = Object.keys(calculationPerRdn).map(label => {
-      return {
-        label,
-        data: labels.map(date => calculationPerRdn[label][date].profitPercentage),
-        fill: false,
-        borderColor: generatedColor[label]
-      };
-    });
-    this.nabData = {labels, datasets: datasets1};
-    this.profitData = {labels, datasets: datasets2};
-    this.profitPercentageData = {labels, datasets: datasets3};
+    this.nabData = DetailComponent.showData(['NAB History (Individual)', 'NAB (Rp.)', Object.keys(calculationPerRdn)
+      .map(rdnName => ({
+        name: rdnName,
+        data: navDates.map(date => [date, models[rdnName][date]])
+          .filter(val => val[1]).map(DetailComponent.adjustForHighchart),
+        visible: false,
+        events: {
+          show: (event: Event) => {
+            const currentSeries = event.target as unknown as Series;
+            currentSeries.chart.series
+            // tslint:disable-next-line:triple-equals
+              .filter(series => series != currentSeries)
+              .forEach(series => series.hide());
+            currentSeries.chart.zoomOut();
+          }
+        }
+      }))]);
+    this.profitData = DetailComponent.showData(['Profit History', 'Profit (Rp.)', Object.keys(calculationPerRdn)
+      .map(rdnName => ({
+        name: rdnName,
+        data: navDates.map(date => [date, calculationPerRdn[rdnName][date].profit])
+          .filter(val => val[1]).map(DetailComponent.adjustForHighchart),
+        rdnType: mainTransaction[rdnName][0].type
+      }))]);
+    this.profitPercentageData = DetailComponent.showData(['Profit Percentage History', 'Profit (%)', Object.keys(calculationPerRdn)
+      .map(rdnName => ({
+        name: rdnName,
+        data: navDates.map(date => [date, calculationPerRdn[rdnName][date].profitPercentage])
+          .filter(val => val[1]).map(DetailComponent.adjustForHighchart),
+        rdnType: mainTransaction[rdnName][0].type
+      }))]);
   }
 
-  private roundDec(val: number) {
-    if (val) {
-      return val.toFixed(2);
+  filterType(data: string[], profitPercentage: HighchartsChartComponent, profit: HighchartsChartComponent) {
+    if (!data) {
+      data = [];
     }
-    return val;
-  }
-
-  updateLookback(number: number) {
-    this.maxLookback = moment(new Date()).startOf('day').subtract(number, 'month').toDate();
-    this.ngOnInit();
+    this.profitData.series.forEach(s => {
+      s.visible = data.includes(s.rdnType);
+    });
+    profit.options = this.profitData;
+    this.profitPercentageData.series.forEach(s => {
+      s.visible = data.includes(s.rdnType);
+    });
+    profitPercentage.options = this.profitPercentageData;
   }
 }

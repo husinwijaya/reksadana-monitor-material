@@ -1,13 +1,33 @@
-<label id="rangeLabel">Range</label>
-<mat-radio-group aria-labelledby="rangeLabel">
-  <mat-radio-button *ngFor="let range of [1,2,3,6]" (click)="updateLookback(range)" value="{{range}}">
-    {{range}}M
-  </mat-radio-button>
-  <mat-radio-button (click)="updateLookback(10000)" checked>All</mat-radio-button>
-</mat-radio-group>
-<h1>Profit %</h1>
-<p-chart [data]="profitPercentageData" type="line"></p-chart>
-<h1>Profit Riil</h1>
-<p-chart [data]="profitData" type="line"></p-chart>
-<h1>NAB</h1>
-<p-chart [data]="nabData" type="line"></p-chart>
+<ng-template [ngIf]="profitData && profitPercentageData && nabData">
+  <mat-tab-group class="tab" #tab
+                 (selectedTabChange)="filter.hidden=(tab.selectedIndex>1)">
+    <mat-tab label="Profit (%)">
+      <highcharts-chart [Highcharts]="Highcharts"
+                        [options]="profitPercentageData"
+                        class="chart"
+                        #profitPercentageChart
+      ></highcharts-chart>
+    </mat-tab>
+    <mat-tab label="Profit (Rp.)">
+      <highcharts-chart [Highcharts]="Highcharts"
+                        [options]="profitData"
+                        class="chart"
+                        #profitChart
+      ></highcharts-chart>
+    </mat-tab>
+    <mat-tab label="NAB">
+      <highcharts-chart [Highcharts]="Highcharts"
+                        [options]="nabData"
+                        class="chart"
+      ></highcharts-chart>
+    </mat-tab>
+  </mat-tab-group>
+  <div class="center" #filter>
+    <mat-slide-toggle #slider checked="true">Multiple Type</mat-slide-toggle>
+    <mat-label class="filter-label">Filter by Type:</mat-label>
+    <mat-button-toggle-group [multiple]="slider.checked"
+                             (change)="filterType($event.value,profitPercentageChart,profitChart)">
+      <mat-button-toggle *ngFor="let type of types;" [value]="type" checked="true">{{type}}</mat-button-toggle>
+    </mat-button-toggle-group>
+  </div>
+</ng-template>
